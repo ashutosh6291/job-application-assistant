@@ -4,6 +4,7 @@ from pypdf import PdfReader
 
 from job_search import search_jobs
 from job_matcher import analyze_job
+from resume_parser import build_candidate_profile
 
 
 # =========================================================
@@ -88,206 +89,10 @@ def clean_text(text):
 
 
 # =========================================================
-# BUILD PROFILE FROM RESUME
+# =========================================================
+# PROFILE PARSER
 # =========================================================
 
-def build_profile_from_resume(resume_text):
-
-    text = resume_text.lower()
-
-    profile = {
-
-        "education": {
-            "degree": "",
-            "branch": "",
-            "college": "",
-            "graduation_year": "",
-            "cgpa": ""
-        },
-
-        "preferred_roles": [
-            "Graduate Engineer Trainee",
-            "GET",
-            "Graduate Engineer",
-            "Trainee Engineer",
-            "Quality Engineer",
-            "Production Engineer",
-            "Process Engineer",
-            "Metallurgy Engineer",
-            "Materials Engineer",
-            "Data Analyst",
-            "Data Analyst Intern",
-            "Business Analyst",
-            "Banking Operations Analyst"
-        ],
-
-        "preferred_domains": [],
-
-        "skills": [],
-
-        "experience": []
-    }
-
-
-    # -----------------------------------------------------
-    # COMMON SKILLS
-    # -----------------------------------------------------
-
-    skills = [
-
-        "Python",
-        "SQL",
-        "C",
-        "C++",
-        "Java",
-        "JavaScript",
-        "Excel",
-        "Power BI",
-        "Tableau",
-        "Pandas",
-        "NumPy",
-        "Machine Learning",
-        "Deep Learning",
-        "NLP",
-        "Data Analysis",
-        "Data Science",
-        "Statistics",
-        "AWS",
-        "Azure",
-        "GCP",
-        "Git",
-        "Docker",
-        "Linux",
-        "MySQL",
-        "MongoDB",
-        "XRD",
-        "SEM",
-        "MAUD",
-        "Rietveld Refinement",
-        "Metallurgy",
-        "Materials Science",
-        "Quality Control",
-        "Quality Assurance",
-        "Production",
-        "Manufacturing",
-        "Process Engineering"
-    ]
-
-
-    for skill in skills:
-
-        if skill.lower() in text:
-
-            profile["skills"].append(skill)
-
-
-    # -----------------------------------------------------
-    # DOMAIN DETECTION
-    # -----------------------------------------------------
-
-    domain_keywords = {
-
-        "Metallurgy": [
-            "metallurgy",
-            "metallurgical",
-            "steel",
-            "alloy",
-            "materials science"
-        ],
-
-        "Manufacturing": [
-            "manufacturing",
-            "production",
-            "plant",
-            "process engineering"
-        ],
-
-        "Quality": [
-            "quality control",
-            "quality assurance",
-            "quality engineer",
-            "inspection"
-        ],
-
-        "Data Analytics": [
-            "data analyst",
-            "data analysis",
-            "power bi",
-            "pandas",
-            "sql"
-        ],
-
-        "IT / Software": [
-            "software engineer",
-            "developer",
-            "python",
-            "java",
-            "javascript",
-            "programming"
-        ],
-
-        "Banking / Finance": [
-            "banking",
-            "finance",
-            "financial",
-            "credit",
-            "bank"
-        ]
-    }
-
-
-    for domain, keywords in domain_keywords.items():
-
-        if any(
-            keyword in text
-            for keyword in keywords
-        ):
-
-            profile["preferred_domains"].append(
-                domain
-            )
-
-
-    # -----------------------------------------------------
-    # DEGREE DETECTION
-    # -----------------------------------------------------
-
-    degree_patterns = [
-
-        "b.tech",
-        "btech",
-        "b.e.",
-        "be",
-        "m.tech",
-        "mtech",
-        "m.e.",
-        "b.sc",
-        "bsc",
-        "m.sc",
-        "msc",
-        "mba",
-        "bba",
-        "bca",
-        "mca"
-    ]
-
-    for degree in degree_patterns:
-
-        if degree in text:
-
-            profile["education"]["degree"] = degree.upper()
-
-            break
-
-
-    # -----------------------------------------------------
-    # RETURN PROFILE
-    # -----------------------------------------------------
-
-    return profile
-
-
-# =========================================================
 # HTML CLEANER
 # =========================================================
 
@@ -457,7 +262,7 @@ if uploaded_resume:
     # CREATE USER PROFILE
     # -----------------------------------------------------
 
-    user_profile = build_profile_from_resume(
+    user_profile = build_candidate_profile(
         resume_text
     )
 
