@@ -1,45 +1,75 @@
 """
-Job search module.
-
-This module will collect relevant job opportunities
-from supported job sources.
+Real job search module.
 """
 
+import requests
 from typing import List, Dict
 
 
-def search_jobs(keywords: List[str]) -> List[Dict]:
-    """
-    Search for jobs using the supplied keywords.
+ARBEITNOW_API = "https://www.arbeitnow.com/api/job-board-api"
 
-    The actual job-source integrations will be added
-    in the next development stage.
+
+def search_arbeitnow() -> List[Dict]:
     """
+    Fetch jobs from the Arbeitnow public job API.
+    """
+
+    try:
+        response = requests.get(
+            ARBEITNOW_API,
+            timeout=20
+        )
+
+        response.raise_for_status()
+
+        data = response.json()
+
+        return data.get("data", [])
+
+    except requests.RequestException as error:
+        print(f"Job API error: {error}")
+        return []
+
+
+def normalize_job(job: Dict) -> Dict:
+    """
+    Convert an external job listing into our standard format.
+    """
+
+    return {
+        "title": job.get("title", ""),
+        "company": job.get("company_name", ""),
+        "location": job.get("location", ""),
+        "description": job.get("description", ""),
+        "url": job.get("url", ""),
+        "source": "Arbeitnow",
+    }
+
+
+def search_jobs() -> List[Dict]:
+    """
+    Fetch and normalize jobs.
+    """
+
+    raw_jobs = search_arbeitnow()
 
     jobs = []
 
-    for keyword in keywords:
-        jobs.append({
-            "title": keyword,
-            "company": "To be discovered",
-            "location": "India",
-            "url": "",
-            "source": "",
-        })
+    for job in raw_jobs:
+        jobs.append(normalize_job(job))
 
     return jobs
 
 
 if __name__ == "__main__":
-    keywords = [
-        "Graduate Engineer Trainee",
-        "GET Metallurgy",
-        "Graduate Engineer",
-        "Data Analyst Intern",
-        "Banking Operations Analyst",
-    ]
 
-    results = search_jobs(keywords)
+    jobs = search_jobs()
 
-    for job in results:
-        print(job)
+    print(f"Jobs found: {len(jobs)}")
+
+    for job in jobs[:10]:
+        print()
+        print(job["title"])
+        print(job["company"])
+        print(job["location"])
+        print(job["url"])
