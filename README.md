@@ -4,7 +4,7 @@
 
 ## 🚀 Live Demo
 
-👉 [**Launch AI Job Seeker**](https://job-application-assistant-8cbdpemhzlgwjjcqojagww.streamlit.app/)
+👉 [**Launch AI Job Seeker**](https://job-application-assistant-smtamogqwbptxh74akzynl.streamlit.app/)
 
 ## ✨ Features
 
