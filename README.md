@@ -2,26 +2,26 @@
 
 > An AI-powered job discovery and matching platform that helps candidates find relevant opportunities based on their resume, preferred location, and career domain.
 
-## 🚀 Live Demo
+##  Live Demo
 
 👉 [**Launch AI Job Seeker**](https://job-application-assistant-smtamogqwbptxh74akzynl.streamlit.app/)
 
 ## ✨ Features
 
-- 📄 Upload your own PDF resume
-- 🤖 Automatically analyze resume skills and career domains
-- 🔎 Search current job opportunities
-- 🎯 Match jobs against the candidate's resume
-- 📊 AI-based job match scoring
+-  Upload your own PDF resume
+-  Automatically analyze resume skills and career domains
+-  Search current job opportunities
+-  Match jobs against the candidate's resume
+-  AI-based job match scoring
 - 🟢 High / 🟡 Medium / 🔴 Low match classification
-- 💡 Explain why a job matches the candidate
-- 📍 Filter jobs by location
-- 🏢 Filter jobs by career domain
-- 🚀 Direct links to original job postings
-- 👥 Designed for multiple job seekers
-- 🔐 No hardcoded candidate profile required
+-  Explain why a job matches the candidate
+-  Filter jobs by location
+-  Filter jobs by career domain
+-  Direct links to original job postings
+-  Designed for multiple job seekers
+-  No hardcoded candidate profile required
 
-## 🎯 Supported Career Areas
+##  Supported Career Areas
 
 - Graduate Engineer / GET
 - Trainee Engineer
@@ -37,7 +37,7 @@
 - Internships
 - Apprenticeships
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 - Python
 - Streamlit
