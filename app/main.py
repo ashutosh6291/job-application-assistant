@@ -1,6 +1,7 @@
 from profile import PROFILE
 from job_matcher import analyze_job
 from job_search import search_jobs
+from job_storage import save_jobs
 
 
 def main():
@@ -19,6 +20,9 @@ def main():
         key=lambda job: job["match_score"],
         reverse=True
     )
+
+    # Save all analyzed jobs
+    save_jobs(analyzed_jobs)
 
     print("\nTop matching jobs:\n")
 
