@@ -1,53 +1,61 @@
-"""
-Job matching and scoring engine.
-"""
-
 from typing import Dict, List
 
 
 def calculate_match_score(job: Dict, profile: Dict) -> int:
-    """
-    Calculate a basic match score between a job and the candidate profile.
-    """
+    title = str(job.get("title", "")).lower()
+    description = str(job.get("description", "")).lower()
+    company = str(job.get("company", "")).lower()
 
-    job_text = " ".join([
-        str(job.get("title", "")),
-        str(job.get("description", "")),
-        str(job.get("company", "")),
-    ]).lower()
+    job_text = f"{title} {description} {company}"
 
     score = 0
-    matched_items: List[str] = []
 
-    # Role matching
+    # Strong priority: preferred job roles
     for role in profile.get("preferred_roles", []):
-        if role.lower() in job_text:
-            score += 15
-            matched_items.append(role)
+        role_text = role.lower()
 
-    # Domain matching
+        if role_text in title:
+            score += 20
+        elif role_text in job_text:
+            score += 10
+
+    # Preferred domains
     for domain in profile.get("preferred_domains", []):
         if domain.lower() in job_text:
-            score += 10
-            matched_items.append(domain)
+            score += 8
 
-    # Skill matching
+    # Technical skills
     for skill in profile.get("skills", []):
-        if skill.lower() in job_text:
+        skill_text = skill.lower()
+
+        # Avoid false matching for one-letter skills such as C
+        if len(skill_text) <= 1:
+            continue
+
+        if skill_text in job_text:
+            score += 4
+
+    # Fresher / graduate friendly keywords
+    fresher_keywords = [
+        "fresher",
+        "graduate",
+        "entry level",
+        "entry-level",
+        "trainee",
+        "intern",
+        "0-1 years",
+        "0-2 years",
+        "fresh graduate",
+    ]
+
+    for keyword in fresher_keywords:
+        if keyword in job_text:
             score += 5
-            matched_items.append(skill)
 
-    # Cap score at 100
-    score = min(score, 100)
-
-    return score
+    return min(score, 100)
 
 
 def classify_job(score: int) -> str:
-    """
-    Convert a numerical score into a priority level.
-    """
-
     if score >= 80:
         return "HIGH"
     elif score >= 60:
@@ -57,10 +65,6 @@ def classify_job(score: int) -> str:
 
 
 def analyze_job(job: Dict, profile: Dict) -> Dict:
-    """
-    Return the job together with its match score and priority.
-    """
-
     score = calculate_match_score(job, profile)
 
     return {
