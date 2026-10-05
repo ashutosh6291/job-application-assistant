@@ -1,14 +1,14 @@
 import re
 import streamlit as st
+from pypdf import PdfReader
 
 from job_search import search_jobs
 from job_matcher import analyze_job
-from profile import PROFILE
 
 
-# ---------------------------------------------------------
-# PAGE CONFIGURATION
-# ---------------------------------------------------------
+# =========================================================
+# PAGE CONFIG
+# =========================================================
 
 st.set_page_config(
     page_title="AI Job Seeker",
@@ -18,9 +18,9 @@ st.set_page_config(
 )
 
 
-# ---------------------------------------------------------
-# CUSTOM STYLING
-# ---------------------------------------------------------
+# =========================================================
+# PAGE STYLE
+# =========================================================
 
 st.markdown(
     """
@@ -38,63 +38,281 @@ st.markdown(
         margin-top: 0;
     }
 
-    .job-card {
-        padding: 20px;
-        border-radius: 12px;
-        border: 1px solid #ddd;
-        margin-bottom: 15px;
-    }
-
-    .section-title {
-        font-size: 24px;
-        font-weight: 600;
-    }
-
     </style>
     """,
     unsafe_allow_html=True
 )
 
 
-# ---------------------------------------------------------
-# HELPER FUNCTIONS
-# ---------------------------------------------------------
+# =========================================================
+# RESUME FUNCTIONS
+# =========================================================
 
-def clean_html(text):
-    """Remove HTML tags from job descriptions."""
-    if not text:
+def extract_resume_text(uploaded_file):
+
+    try:
+
+        reader = PdfReader(uploaded_file)
+
+        pages = []
+
+        for page in reader.pages:
+
+            text = page.extract_text()
+
+            if text:
+                pages.append(text)
+
+        return "\n".join(pages)
+
+    except Exception as error:
+
+        st.error(
+            f"Could not read the resume: {error}"
+        )
+
         return ""
 
-    text = re.sub(r"<[^>]+>", " ", str(text))
-    text = re.sub(r"\s+", " ", text)
+
+def clean_text(text):
+
+    text = str(text or "")
+
+    text = re.sub(
+        r"\s+",
+        " ",
+        text
+    )
 
     return text.strip()
 
 
-def get_priority_badge(priority):
-    if priority == "HIGH":
-        return "🟢 HIGH"
+# =========================================================
+# BUILD PROFILE FROM RESUME
+# =========================================================
 
-    if priority == "MEDIUM":
-        return "🟡 MEDIUM"
+def build_profile_from_resume(resume_text):
 
-    return "🔴 LOW"
+    text = resume_text.lower()
+
+    profile = {
+
+        "education": {
+            "degree": "",
+            "branch": "",
+            "college": "",
+            "graduation_year": "",
+            "cgpa": ""
+        },
+
+        "preferred_roles": [
+            "Graduate Engineer Trainee",
+            "GET",
+            "Graduate Engineer",
+            "Trainee Engineer",
+            "Quality Engineer",
+            "Production Engineer",
+            "Process Engineer",
+            "Metallurgy Engineer",
+            "Materials Engineer",
+            "Data Analyst",
+            "Data Analyst Intern",
+            "Business Analyst",
+            "Banking Operations Analyst"
+        ],
+
+        "preferred_domains": [],
+
+        "skills": [],
+
+        "experience": []
+    }
 
 
-def get_score_label(score):
-    if score >= 80:
-        return "Excellent Match"
-    elif score >= 60:
-        return "Good Match"
-    elif score >= 40:
-        return "Potential Match"
+    # -----------------------------------------------------
+    # COMMON SKILLS
+    # -----------------------------------------------------
 
-    return "Low Match"
+    skills = [
+
+        "Python",
+        "SQL",
+        "C",
+        "C++",
+        "Java",
+        "JavaScript",
+        "Excel",
+        "Power BI",
+        "Tableau",
+        "Pandas",
+        "NumPy",
+        "Machine Learning",
+        "Deep Learning",
+        "NLP",
+        "Data Analysis",
+        "Data Science",
+        "Statistics",
+        "AWS",
+        "Azure",
+        "GCP",
+        "Git",
+        "Docker",
+        "Linux",
+        "MySQL",
+        "MongoDB",
+        "XRD",
+        "SEM",
+        "MAUD",
+        "Rietveld Refinement",
+        "Metallurgy",
+        "Materials Science",
+        "Quality Control",
+        "Quality Assurance",
+        "Production",
+        "Manufacturing",
+        "Process Engineering"
+    ]
 
 
-# ---------------------------------------------------------
+    for skill in skills:
+
+        if skill.lower() in text:
+
+            profile["skills"].append(skill)
+
+
+    # -----------------------------------------------------
+    # DOMAIN DETECTION
+    # -----------------------------------------------------
+
+    domain_keywords = {
+
+        "Metallurgy": [
+            "metallurgy",
+            "metallurgical",
+            "steel",
+            "alloy",
+            "materials science"
+        ],
+
+        "Manufacturing": [
+            "manufacturing",
+            "production",
+            "plant",
+            "process engineering"
+        ],
+
+        "Quality": [
+            "quality control",
+            "quality assurance",
+            "quality engineer",
+            "inspection"
+        ],
+
+        "Data Analytics": [
+            "data analyst",
+            "data analysis",
+            "power bi",
+            "pandas",
+            "sql"
+        ],
+
+        "IT / Software": [
+            "software engineer",
+            "developer",
+            "python",
+            "java",
+            "javascript",
+            "programming"
+        ],
+
+        "Banking / Finance": [
+            "banking",
+            "finance",
+            "financial",
+            "credit",
+            "bank"
+        ]
+    }
+
+
+    for domain, keywords in domain_keywords.items():
+
+        if any(
+            keyword in text
+            for keyword in keywords
+        ):
+
+            profile["preferred_domains"].append(
+                domain
+            )
+
+
+    # -----------------------------------------------------
+    # DEGREE DETECTION
+    # -----------------------------------------------------
+
+    degree_patterns = [
+
+        "b.tech",
+        "btech",
+        "b.e.",
+        "be",
+        "m.tech",
+        "mtech",
+        "m.e.",
+        "b.sc",
+        "bsc",
+        "m.sc",
+        "msc",
+        "mba",
+        "bba",
+        "bca",
+        "mca"
+    ]
+
+    for degree in degree_patterns:
+
+        if degree in text:
+
+            profile["education"]["degree"] = degree.upper()
+
+            break
+
+
+    # -----------------------------------------------------
+    # RETURN PROFILE
+    # -----------------------------------------------------
+
+    return profile
+
+
+# =========================================================
+# HTML CLEANER
+# =========================================================
+
+def clean_html(text):
+
+    text = str(text or "")
+
+    text = re.sub(
+        r"<[^>]+>",
+        " ",
+        text
+    )
+
+    text = re.sub(
+        r"\s+",
+        " ",
+        text
+    )
+
+    return text.strip()
+
+
+# =========================================================
 # HEADER
-# ---------------------------------------------------------
+# =========================================================
 
 st.markdown(
     '<div class="main-title">💼 AI Job Seeker</div>',
@@ -103,42 +321,71 @@ st.markdown(
 
 st.markdown(
     '<div class="subtitle">'
-    'AI-powered job discovery and career assistant'
+    'Upload your resume and discover matching jobs'
     '</div>',
     unsafe_allow_html=True
 )
 
 st.write(
-    "Find relevant opportunities across Graduate Engineer, "
-    "Metallurgy, Materials, Quality, Production, Process, "
-    "Data Analytics and Banking roles."
+    "Upload your resume, choose your preferred location "
+    "and domain, and the system will find relevant "
+    "opportunities for you."
 )
 
 st.divider()
 
 
-# ---------------------------------------------------------
+# =========================================================
 # SIDEBAR
-# ---------------------------------------------------------
+# =========================================================
 
 st.sidebar.title("🎯 Job Preferences")
 
-st.sidebar.markdown("### Job Filters")
 
-show_high_only = st.sidebar.checkbox(
-    "🟢 HIGH priority only",
-    value=False
+location_options = [
+    "Any Location",
+    "India",
+    "Remote",
+    "Kolkata",
+    "Delhi",
+    "Mumbai",
+    "Bangalore",
+    "Hyderabad",
+    "Chennai",
+    "Pune",
+    "Gurgaon",
+    "Noida",
+    "International"
+]
+
+
+domain_options = [
+    "Any Domain",
+    "Metallurgy / Materials",
+    "Manufacturing",
+    "Quality",
+    "Production",
+    "Process Engineering",
+    "Data Analytics",
+    "IT / Software",
+    "Banking / Finance",
+    "Research",
+    "Internship",
+    "Apprenticeship"
+]
+
+
+location = st.sidebar.selectbox(
+    "📍 Preferred Location",
+    location_options
 )
 
-location_filter = st.sidebar.text_input(
-    "📍 Location",
-    placeholder="Example: India, Kolkata, Remote"
+
+domain = st.sidebar.selectbox(
+    "🏢 Preferred Domain",
+    domain_options
 )
 
-keyword_filter = st.sidebar.text_input(
-    "🔎 Keyword",
-    placeholder="Example: Metallurgy, Python, Analyst"
-)
 
 max_jobs = st.sidebar.slider(
     "📊 Number of jobs",
@@ -148,420 +395,577 @@ max_jobs = st.sidebar.slider(
     step=5
 )
 
-st.sidebar.divider()
-
-st.sidebar.markdown("### 🎯 Target Roles")
-
-st.sidebar.write(
-    """
-    • GET / Graduate Engineer  
-    • Trainee Engineer  
-    • Metallurgy / Materials  
-    • Quality / Production  
-    • Process Engineering  
-    • Data Analyst  
-    • Banking Operations
-    """
-)
 
 st.sidebar.divider()
 
 st.sidebar.caption(
-    "AI Job Seeker v1.0"
+    "Your resume is used to personalize the current search."
 )
 
 
-# ---------------------------------------------------------
-# PROFILE
-# ---------------------------------------------------------
-
-with st.expander("👤 My Profile", expanded=False):
-
-    st.markdown("### 🎓 Education")
-
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        st.metric(
-            "Degree",
-            PROFILE["education"]["degree"]
-        )
-
-    with col2:
-        st.metric(
-            "Branch",
-            "Metallurgy & Materials"
-        )
-
-    with col3:
-        st.metric(
-            "Graduation",
-            PROFILE["education"]["graduation_year"]
-        )
-
-    with col4:
-        st.metric(
-            "CGPA",
-            PROFILE["education"]["cgpa"]
-        )
-
-    st.markdown("### 💼 Preferred Roles")
-
-    roles = PROFILE.get("preferred_roles", [])
-
-    if roles:
-        st.write(" • ".join(roles))
-
-    st.markdown("### 🛠️ Skills")
-
-    skills = PROFILE.get("skills", [])
-
-    if skills:
-        st.write(" • ".join(skills))
-
-
-# ---------------------------------------------------------
-# SEARCH
-# ---------------------------------------------------------
+# =========================================================
+# RESUME UPLOAD
+# =========================================================
 
 st.markdown(
-    '<div class="section-title">🔎 Find Your Next Opportunity</div>',
-    unsafe_allow_html=True
+    "## 📄 Upload Your Resume"
 )
 
-st.write(
-    "Search current job opportunities and see how well "
-    "they match your profile."
-)
-
-
-search_clicked = st.button(
-    "🚀 Search Jobs",
-    type="primary",
-    use_container_width=True
+uploaded_resume = st.file_uploader(
+    "Upload your PDF resume",
+    type=["pdf"],
+    help="Upload a PDF resume to start your personalized job search."
 )
 
 
-# ---------------------------------------------------------
-# JOB SEARCH
-# ---------------------------------------------------------
+# =========================================================
+# SEARCH AFTER RESUME UPLOAD
+# =========================================================
 
-if search_clicked:
+if uploaded_resume:
+
+    st.success(
+        f"Resume uploaded: **{uploaded_resume.name}**"
+    )
+
 
     with st.spinner(
-        "🔎 Searching and analyzing jobs..."
+        "🤖 Reading your resume..."
     ):
 
-        jobs = search_jobs()
+        resume_text = extract_resume_text(
+            uploaded_resume
+        )
 
-    if not jobs:
+
+    if not resume_text:
 
         st.error(
-            "No jobs were returned by the job source. "
-            "Please try again later."
+            "I couldn't extract text from this PDF. "
+            "Please upload a text-based PDF resume."
+        )
+
+        st.stop()
+
+
+    resume_text = clean_text(
+        resume_text
+    )
+
+
+    # -----------------------------------------------------
+    # CREATE USER PROFILE
+    # -----------------------------------------------------
+
+    user_profile = build_profile_from_resume(
+        resume_text
+    )
+
+
+    # -----------------------------------------------------
+    # DOMAIN FILTER
+    # -----------------------------------------------------
+
+    if domain != "Any Domain":
+
+        domain_keywords = {
+
+            "Metallurgy / Materials": [
+                "metallurgy",
+                "metallurgical",
+                "materials",
+                "steel",
+                "alloy"
+            ],
+
+            "Manufacturing": [
+                "manufacturing",
+                "manufacturing engineer"
+            ],
+
+            "Quality": [
+                "quality",
+                "quality control",
+                "quality assurance"
+            ],
+
+            "Production": [
+                "production",
+                "production engineer"
+            ],
+
+            "Process Engineering": [
+                "process",
+                "process engineer"
+            ],
+
+            "Data Analytics": [
+                "data analyst",
+                "data analysis",
+                "analytics",
+                "business analyst"
+            ],
+
+            "IT / Software": [
+                "software",
+                "developer",
+                "programming",
+                "software engineer"
+            ],
+
+            "Banking / Finance": [
+                "banking",
+                "finance",
+                "financial",
+                "bank"
+            ],
+
+            "Research": [
+                "research",
+                "research assistant",
+                "research fellow"
+            ],
+
+            "Internship": [
+                "intern",
+                "internship"
+            ],
+
+            "Apprenticeship": [
+                "apprentice",
+                "apprenticeship"
+            ]
+        }
+
+        selected_keywords = domain_keywords.get(
+            domain,
+            []
         )
 
     else:
 
-        analyzed_jobs = []
+        selected_keywords = []
 
-        # ---------------------------------------------
-        # ANALYZE JOBS
-        # ---------------------------------------------
 
-        for job in jobs:
+    # =====================================================
+    # AUTOMATIC SEARCH
+    # =====================================================
 
-            try:
+    with st.spinner(
+        "🔎 Searching and matching jobs..."
+    ):
 
-                result = analyze_job(
-                    job,
-                    PROFILE
+        jobs = search_jobs()
+
+
+    if not jobs:
+
+        st.warning(
+            "No jobs were returned by the job source. "
+            "Please try again later."
+        )
+
+        st.stop()
+
+
+    analyzed_jobs = []
+
+
+    # =====================================================
+    # ANALYZE JOBS
+    # =====================================================
+
+    for job in jobs:
+
+        try:
+
+            # ---------------------------------------------
+            # LOCATION FILTER
+            # ---------------------------------------------
+
+            job_location = str(
+                job.get(
+                    "location",
+                    ""
                 )
+            ).lower()
 
-                analyzed_jobs.append(result)
+            if location != "Any Location":
 
-            except Exception:
-                continue
+                location_key = location.lower()
+
+                if location == "International":
+
+                    # Keep jobs that don't clearly belong
+                    # to the main Indian locations.
+
+                    indian_terms = [
+                        "india",
+                        "kolkata",
+                        "delhi",
+                        "mumbai",
+                        "bangalore",
+                        "hyderabad",
+                        "chennai",
+                        "pune",
+                        "gurgaon",
+                        "noida"
+                    ]
+
+                    if any(
+                        term in job_location
+                        for term in indian_terms
+                    ):
+
+                        continue
+
+                elif location == "Remote":
+
+                    if (
+                        "remote" not in job_location
+                        and "remote" not in
+                        str(
+                            job.get(
+                                "description",
+                                ""
+                            )
+                        ).lower()
+                    ):
+
+                        continue
+
+                elif location_key not in job_location:
+
+                    continue
 
 
-        # ---------------------------------------------
-        # FILTER JOBS
-        # ---------------------------------------------
+            # ---------------------------------------------
+            # DOMAIN FILTER
+            # ---------------------------------------------
 
-        if show_high_only:
+            if selected_keywords:
 
-            analyzed_jobs = [
-                job
-                for job in analyzed_jobs
-                if job.get("priority") == "HIGH"
-            ]
-
-
-        if location_filter:
-
-            location_text = location_filter.lower()
-
-            analyzed_jobs = [
-                job
-                for job in analyzed_jobs
-                if location_text in (
-                    str(job.get("location", "")).lower()
-                )
-            ]
-
-
-        if keyword_filter:
-
-            keyword = keyword_filter.lower()
-
-            filtered_jobs = []
-
-            for job in analyzed_jobs:
-
-                searchable_text = " ".join(
+                searchable = " ".join(
                     [
-                        str(job.get("title", "")),
-                        str(job.get("company", "")),
-                        str(job.get("description", "")),
-                        str(job.get("location", "")),
+                        str(
+                            job.get(
+                                "title",
+                                ""
+                            )
+                        ),
+
+                        str(
+                            job.get(
+                                "description",
+                                ""
+                            )
+                        ),
+
+                        str(
+                            job.get(
+                                "company",
+                                ""
+                            )
+                        )
                     ]
                 ).lower()
 
-                if keyword in searchable_text:
-                    filtered_jobs.append(job)
 
-            analyzed_jobs = filtered_jobs
+                if not any(
+                    keyword in searchable
+                    for keyword in selected_keywords
+                ):
 
-
-        # ---------------------------------------------
-        # SORT
-        # ---------------------------------------------
-
-        analyzed_jobs.sort(
-            key=lambda x: x.get(
-                "match_score",
-                0
-            ),
-            reverse=True
-        )
+                    continue
 
 
-        # ---------------------------------------------
-        # LIMIT
-        # ---------------------------------------------
+            # ---------------------------------------------
+            # AI MATCHING
+            # ---------------------------------------------
 
-        displayed_jobs = analyzed_jobs[:max_jobs]
-
-
-        # ---------------------------------------------
-        # SUMMARY
-        # ---------------------------------------------
-
-        st.success(
-            f"Found {len(jobs)} jobs • "
-            f"Showing {len(displayed_jobs)} matches"
-        )
-
-        # Statistics
-
-        col1, col2, col3, col4 = st.columns(4)
-
-        high_count = sum(
-            1
-            for job in analyzed_jobs
-            if job.get("priority") == "HIGH"
-        )
-
-        medium_count = sum(
-            1
-            for job in analyzed_jobs
-            if job.get("priority") == "MEDIUM"
-        )
-
-        low_count = sum(
-            1
-            for job in analyzed_jobs
-            if job.get("priority") == "LOW"
-        )
-
-        with col1:
-            st.metric(
-                "Jobs Found",
-                len(jobs)
+            result = analyze_job(
+                job,
+                user_profile
             )
 
-        with col2:
-            st.metric(
-                "🟢 High Match",
-                high_count
-            )
-
-        with col3:
-            st.metric(
-                "🟡 Medium Match",
-                medium_count
-            )
-
-        with col4:
-            st.metric(
-                "🔴 Low Match",
-                low_count
+            analyzed_jobs.append(
+                result
             )
 
 
-        st.divider()
+        except Exception:
+
+            continue
 
 
-        # ---------------------------------------------
-        # JOB CARDS
-        # ---------------------------------------------
+    # =====================================================
+    # SORT RESULTS
+    # =====================================================
 
-        if not displayed_jobs:
-
-            st.warning(
-                "No jobs match your selected filters."
-            )
-
-        else:
-
-            for job in displayed_jobs:
-
-                score = job.get(
-                    "match_score",
-                    0
-                )
-
-                priority = job.get(
-                    "priority",
-                    "LOW"
-                )
-
-                badge = get_priority_badge(
-                    priority
-                )
-
-                title = job.get(
-                    "title",
-                    "Unknown Job"
-                )
-
-                company = job.get(
-                    "company",
-                    "Unknown Company"
-                )
-
-                location = job.get(
-                    "location",
-                    "Not specified"
-                )
-
-                description = clean_html(
-                    job.get(
-                        "description",
-                        ""
-                    )
-                )
-
-                url = job.get(
-                    "url",
-                    ""
-                )
-
-                source = job.get(
-                    "source",
-                    "Unknown"
-                )
-
-
-                # ---------------------------------
-                # JOB CONTAINER
-                # ---------------------------------
-
-                with st.container(border=True):
-
-                    left, right = st.columns(
-                        [4, 1]
-                    )
-
-
-                    # LEFT SIDE
-
-                    with left:
-
-                        st.markdown(
-                            f"### 💼 {title}"
-                        )
-
-                        st.write(
-                            f"**🏢 Company:** {company}"
-                        )
-
-                        st.write(
-                            f"**📍 Location:** {location}"
-                        )
-
-                        st.write(
-                            f"**🎯 {get_score_label(score)}**"
-                        )
-
-                        if description:
-
-                            st.write(
-                                description[:600]
-                                + (
-                                    "..."
-                                    if len(description) > 600
-                                    else ""
-                                )
-                            )
-
-
-                    # RIGHT SIDE
-
-                    with right:
-
-                        st.metric(
-                            "Match",
-                            f"{score}%"
-                        )
-
-                        st.write(badge)
-
-                        if url:
-
-                            st.link_button(
-                                "🚀 Apply Now",
-                                url,
-                                use_container_width=True
-                            )
-
-                        st.caption(
-                            f"Source: {source}"
-                        )
-
-
-                    st.divider()
-
-
-else:
-
-    # ---------------------------------------------
-    # INITIAL SCREEN
-    # ---------------------------------------------
-
-    st.info(
-        "👆 Click **Search Jobs** to discover "
-        "current opportunities matching your profile."
+    analyzed_jobs.sort(
+        key=lambda x: x.get(
+            "match_score",
+            0
+        ),
+        reverse=True
     )
 
 
-# ---------------------------------------------------------
+    displayed_jobs = analyzed_jobs[
+        :max_jobs
+    ]
+
+
+    # =====================================================
+    # RESULTS SUMMARY
+    # =====================================================
+
+    st.divider()
+
+    st.markdown(
+        "## 🔎 Recommended Jobs"
+    )
+
+
+    col1, col2, col3 = st.columns(3)
+
+
+    high_count = sum(
+        1
+        for job in analyzed_jobs
+        if job.get("priority") == "HIGH"
+    )
+
+
+    medium_count = sum(
+        1
+        for job in analyzed_jobs
+        if job.get("priority") == "MEDIUM"
+    )
+
+
+    with col1:
+
+        st.metric(
+            "Jobs Found",
+            len(analyzed_jobs)
+        )
+
+
+    with col2:
+
+        st.metric(
+            "🟢 High Matches",
+            high_count
+        )
+
+
+    with col3:
+
+        st.metric(
+            "🟡 Medium Matches",
+            medium_count
+        )
+
+
+    st.divider()
+
+
+    # =====================================================
+    # JOB RESULTS
+    # =====================================================
+
+    if not displayed_jobs:
+
+        st.warning(
+            "No jobs matched your selected "
+            "location and domain."
+        )
+
+
+    else:
+
+        for job in displayed_jobs:
+
+            score = job.get(
+                "match_score",
+                0
+            )
+
+            priority = job.get(
+                "priority",
+                "LOW"
+            )
+
+
+            if priority == "HIGH":
+
+                badge = "🟢 HIGH"
+
+            elif priority == "MEDIUM":
+
+                badge = "🟡 MEDIUM"
+
+            else:
+
+                badge = "🔴 LOW"
+
+
+            title = job.get(
+                "title",
+                "Unknown Job"
+            )
+
+            company = job.get(
+                "company",
+                "Unknown Company"
+            )
+
+            job_location = job.get(
+                "location",
+                "Not specified"
+            )
+
+            description = clean_html(
+                job.get(
+                    "description",
+                    ""
+                )
+            )
+
+            url = job.get(
+                "url",
+                ""
+            )
+
+            source = job.get(
+                "source",
+                "Unknown"
+            )
+
+
+            with st.container(
+                border=True
+            ):
+
+                left, right = st.columns(
+                    [4, 1]
+                )
+
+
+                with left:
+
+                    st.markdown(
+                        f"### 💼 {title}"
+                    )
+
+                    st.write(
+                        f"**🏢 Company:** {company}"
+                    )
+
+                    st.write(
+                        f"**📍 Location:** {job_location}"
+                    )
+
+                    if description:
+
+                        st.write(
+                            description[:600]
+                            + (
+                                "..."
+                                if len(description) > 600
+                                else ""
+                            )
+                        )
+
+
+                    reasons = job.get(
+                        "match_reasons",
+                        []
+                    )
+
+
+                    if reasons:
+
+                        with st.expander(
+                            "🤖 Why this job matches"
+                        ):
+
+                            for reason in reasons:
+
+                                st.write(
+                                    f"✅ {reason}"
+                                )
+
+
+                with right:
+
+                    st.metric(
+                        "Match",
+                        f"{score}%"
+                    )
+
+                    st.write(
+                        badge
+                    )
+
+
+                    if url:
+
+                        st.link_button(
+                            "🚀 Apply Now",
+                            url,
+                            use_container_width=True
+                        )
+
+
+                    st.caption(
+                        f"Source: {source}"
+                    )
+
+
+# =========================================================
+# BEFORE RESUME UPLOAD
+# =========================================================
+
+else:
+
+    st.info(
+        "📄 **Upload your resume above to start "
+        "your personalized job search.**"
+    )
+
+    st.markdown(
+        """
+        ### How it works
+
+        **1️⃣ Upload Resume**  
+        Upload your PDF resume.
+
+        **2️⃣ Choose Preferences**  
+        Select your preferred location and domain.
+
+        **3️⃣ AI Analysis**  
+        Your resume is analyzed to identify relevant skills.
+
+        **4️⃣ Job Search**  
+        Current opportunities are searched.
+
+        **5️⃣ AI Matching**  
+        Jobs are ranked according to your resume.
+
+        **6️⃣ Apply**  
+        Open the original job posting and apply.
+        """
+    )
+
+
+# =========================================================
 # FOOTER
-# ---------------------------------------------------------
+# =========================================================
 
 st.divider()
 
 st.caption(
-    "💼 AI Job Seeker • "
-    "AI-powered job discovery and application assistant"
+    "💼 AI Job Seeker • Personalized job discovery assistant"
 )
